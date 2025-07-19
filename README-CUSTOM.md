@@ -138,6 +138,7 @@ PROBE_CALIBRATE
 - ✅ BLTouch pré-configuré
 - ✅ Bed mesh par défaut
 - ✅ Fichier test inclus
+- ✅ Workflow GitHub Actions configuré
 
 ---
 
