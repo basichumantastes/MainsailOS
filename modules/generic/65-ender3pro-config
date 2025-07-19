@@ -1,0 +1,116 @@
+#!/bin/bash
+set -xe
+export LC_ALL=C
+
+########################################
+# Ender 3 Pro Custom Configuration     #
+########################################
+
+# Load common functions and set up cleanup trap
+source /common.sh
+install_cleanup_trap
+
+# Load additional configuration (e.g., BASE_USER)
+source /files/00-config
+
+########################################
+# Configuration                        #
+########################################
+
+PRINTER_DATA_DIR="/home/${BASE_USER}/printer_data"
+CONFIG_DIR="${PRINTER_DATA_DIR}/config"
+GCODES_DIR="${PRINTER_DATA_DIR}/gcodes"
+LOGS_DIR="${PRINTER_DATA_DIR}/logs"
+
+########################################
+# Create printer_data structure        #
+########################################
+
+echo "Creating printer_data directory structure..."
+
+# Create directories with proper permissions
+install -d -m 755 -o "${BASE_USER}" -g "${BASE_USER}" "${PRINTER_DATA_DIR}"
+install -d -m 755 -o "${BASE_USER}" -g "${BASE_USER}" "${CONFIG_DIR}"
+install -d -m 755 -o "${BASE_USER}" -g "${BASE_USER}" "${GCODES_DIR}"
+install -d -m 755 -o "${BASE_USER}" -g "${BASE_USER}" "${LOGS_DIR}"
+
+########################################
+# Install custom printer.cfg           #
+########################################
+
+echo "Installing custom Ender 3 Pro printer.cfg..."
+
+# Install the custom printer.cfg
+install -m 644 -o "${BASE_USER}" -g "${BASE_USER}" /files/ender3pro-printer.cfg "${CONFIG_DIR}/printer.cfg"
+
+# Create a backup of the original config
+install -m 644 -o "${BASE_USER}" -g "${BASE_USER}" /files/ender3pro-printer.cfg "${CONFIG_DIR}/printer.cfg.backup"
+
+########################################
+# Install additional configurations    #
+########################################
+
+# Create moonraker.conf if it doesn't exist or update it
+if [[ -f "${CONFIG_DIR}/moonraker.conf" ]]; then
+    echo "Moonraker.conf already exists, backing up..."
+    cp "${CONFIG_DIR}/moonraker.conf" "${CONFIG_DIR}/moonraker.conf.backup"
+fi
+
+# Install updated moonraker configuration
+install -m 644 -o "${BASE_USER}" -g "${BASE_USER}" /files/ender3pro-moonraker.conf "${CONFIG_DIR}/moonraker.conf"
+
+########################################
+# Set permissions                      #
+########################################
+
+echo "Setting proper permissions..."
+
+# Ensure all printer_data belongs to BASE_USER
+chown -R "${BASE_USER}:${BASE_USER}" "${PRINTER_DATA_DIR}"
+
+# Set proper permissions
+find "${PRINTER_DATA_DIR}" -type d -exec chmod 755 {} \;
+find "${PRINTER_DATA_DIR}" -type f -exec chmod 644 {} \;
+
+########################################
+# Create sample gcode files            #
+########################################
+
+echo "Creating sample gcode files..."
+
+# Create a simple test print
+cat > "${GCODES_DIR}/test_print.gcode" << 'EOF'
+; Test print for Ender 3 Pro
+; Simple 20mm calibration cube outline
+
+START_PRINT BED_TEMP=60 EXTRUDER_TEMP=200
+
+; Print outline of 20mm cube
+G90
+G1 X110 Y110 F3000
+G1 Z0.2 F300
+
+G1 X130 Y110 E2 F1000
+G1 X130 Y130 E2 F1000  
+G1 X110 Y130 E2 F1000
+G1 X110 Y110 E2 F1000
+
+END_PRINT
+EOF
+
+chown "${BASE_USER}:${BASE_USER}" "${GCODES_DIR}/test_print.gcode"
+chmod 644 "${GCODES_DIR}/test_print.gcode"
+
+########################################
+# Status                               #
+########################################
+
+echo "Ender 3 Pro custom configuration installed successfully!"
+echo "Configuration includes:"
+echo "  - Calibrated printer.cfg with BLTouch settings"
+echo "  - Custom START_PRINT and END_PRINT macros"
+echo "  - Proper pause/resume/cancel macros"
+echo "  - Calibrated rotation_distance and z_offset"
+echo "  - Pre-configured bed mesh"
+echo ""
+echo "Ready for your Ender 3 Pro + BLTouch setup!"
